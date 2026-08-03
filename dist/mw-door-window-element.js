@@ -269,7 +269,7 @@ ${icon ? `<ha-icon class="ico" icon="${esc(icon)}"></ha-icon>` : ""}`;
   }
 
   console.info(
-    "%c MW-DOOR-WINDOW-ELEMENT %c 0.1.0 ",
+    "%c MW-DOOR-WINDOW-ELEMENT %c 0.1.1 ",
     "color:#0b1021;background:#7fff00;font-weight:700",
     "color:#7fff00;background:#0b1021"
   );
