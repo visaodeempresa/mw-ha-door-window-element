@@ -1,0 +1,57 @@
+# O bloco original (4 `conditional` + 4 `custom:button-card`, ~110 linhas)
+# vira isto — mesma barra, mesmas cores, mesmo brilho:
+
+type: custom:mw-door-window-element
+entity: binary_sensor.cozinha_porta_da_cozinha
+name: PORTA DA COZINHA
+left: calc(100% - 72.4%)
+top: 16.2%
+length: 10%
+thickness: 0.8%
+rotate: 90
+
+---
+# Variante: posicionando pelo `style:` do próprio picture-elements
+# (útil quando o gerador de planta já escreve o style). Vale o mesmo
+# resultado; se as duas formas aparecerem, a config vence.
+
+type: custom:mw-door-window-element
+entity: binary_sensor.cozinha_porta_da_cozinha
+name: PORTA DA COZINHA
+style:
+  left: calc(100% - 72.4%)
+  top: 16.2%
+  width: 10%
+  height: 0.8%
+  transform: translate(-50%, -50%) rotate(90deg)
+
+---
+# Janela, invertida (o sensor manda `on` quando está fechada),
+# clique abre o histórico e o ícone fica de pé mesmo com a barra girada:
+
+type: custom:mw-door-window-element
+entity: binary_sensor.suite_janela
+name: JANELA DA SUÍTE
+left: 41.5%
+top: 62.8%
+length: 8%
+thickness: 0.8%
+rotate: 90
+invert: true
+icon_upright: true
+tap_action: more-info
+
+---
+# Barra discreta: sem brilho, cantos arredondados e cores próprias
+
+type: custom:mw-door-window-element
+entity: binary_sensor.varanda_porta
+name: PORTA DA VARANDA
+left: 55%
+top: 30%
+length: 12%
+thickness: 1.2%
+border_radius: 40%
+glow: false
+color_open: "#9acd32"
+color_closed: "#78909c"
