@@ -14,14 +14,23 @@ const mkStyle = () => {
 };
 
 global.HTMLElement = class {
-  constructor() { this.style = mkStyle(); this._listeners = {}; }
+  constructor() { this.style = mkStyle(); this._listeners = {}; this.children = []; }
   attachShadow() { this.shadowRoot = { innerHTML: "" }; return this.shadowRoot; }
   addEventListener(t, f) { (this._listeners[t] = this._listeners[t] || []).push(f); }
+  appendChild(el) { this.children.push(el); return el; }
+  querySelectorAll() { return []; }
   dispatchEvent() {}
 };
 const reg = {};
 global.customElements = { define: (n, c) => (reg[n] = c), get: (n) => reg[n] };
 global.window = {};
+global.document = {
+  createElement: () => ({
+    style: { cssText: "" }, dataset: {},
+    addEventListener() {}, appendChild() {}, dispatchEvent() {},
+    querySelectorAll: () => [],
+  }),
+};
 global.CustomEvent = class { constructor(t, d) { this.type = t; Object.assign(this, d); } };
 global.setTimeout = setTimeout;
 global.clearTimeout = clearTimeout;
@@ -131,11 +140,103 @@ hass.states["binary_sensor.porta_cozinha"] = { state: "off", attributes: {} };
 still.hass = hass;
 check("estado novo redesenha", still.shadowRoot.innerHTML.includes("rgba(255, 69, 0, 1)"));
 hass.states["binary_sensor.porta_cozinha"] = {
-  state: "on", attributes: { friendly_name: "PORTA DA COZINHA" } };
+  state: "on", attributes: { device_class: "door", friendly_name: "PORTA DA COZINHA" } };
 
 let threw = false;
 try { new reg["mw-door-window-element"]().setConfig({}); } catch (e) { threw = true; }
 check("setConfig sem entity falha", threw);
+
+check("elemento entrega o editor",
+  typeof reg["mw-door-window-element"].getConfigElement === "function");
+
+console.log("editor:");
+
+hass.entities = {
+  "binary_sensor.porta_cozinha": { device_id: "dev1" },
+  "binary_sensor.janela_quarto": { device_id: "dev2" },
+  "cover.garagem": { device_id: "dev3" },
+};
+hass.devices = {
+  dev1: { name: "Sensor da cozinha", area_id: "a1" },
+  dev2: { name: "Sensor do quarto" },
+  dev3: { name: "Motor da garagem" },
+};
+hass.areas = { a1: { name: "Cozinha" } };
+
+const ed = new reg["mw-door-window-element-editor"]();
+ed.hass = hass;
+ed.setConfig({ entity: "binary_sensor.porta_cozinha", device: "dev1" });
+const schema = ed._schema();
+const byName = (n) => schema.find((f) => f.name === n);
+check("select de dispositivo", !!byName("device") &&
+  byName("device").selector.select.options.length === 3);
+const entOpts = byName("entity").selector.select.options;
+check("entidade filtrada pelo dispositivo",
+  entOpts.length === 1 && entOpts[0].value === "binary_sensor.porta_cozinha",
+  JSON.stringify(entOpts.map((o) => o.value)));
+check("seções expansíveis presentes (geometria, aparência, ícones, esconder, ações)",
+  schema.filter((f) => f.type === "expandable").length === 5);
+check("expandable com name vazio (senão o ha-form aninha o data)",
+  schema.filter((f) => f.type === "expandable").every((f) => f.name === ""));
+
+const edAll = new reg["mw-door-window-element-editor"]();
+edAll.hass = hass;
+edAll.setConfig({ entity: "binary_sensor.porta_cozinha" });
+check("sem dispositivo, lista todas as portas/janelas/covers",
+  edAll._schema().find((f) => f.name === "entity").selector.select.options.length === 3);
+
+// o editor não pode gravar default nenhum no YAML
+const captured = [];
+edAll.dispatchEvent = (ev) => captured.push(ev.detail.config);
+edAll._onChange({
+  stopPropagation() {},
+  detail: {
+    value: {
+      entity: "binary_sensor.porta_cozinha", name: "", glow: true, glow_blur: 20,
+      rotate: 90, thickness: "0.8%", icon_size: "4.2vh", left: null,
+      tap_action: "more-info",
+    },
+  },
+});
+check("defaults fora do YAML", JSON.stringify(captured[0]) === JSON.stringify({
+  entity: "binary_sensor.porta_cozinha", rotate: 90, thickness: "0.8%",
+}), JSON.stringify(captured[0]));
+
+// cor escolhida no bloco de baixo sobrevive a uma mexida no ha-form
+const edColor = new reg["mw-door-window-element-editor"]();
+edColor.hass = hass;
+edColor.setConfig({ entity: "binary_sensor.porta_cozinha", color_open: "#33cc55" });
+const got = [];
+edColor.dispatchEvent = (ev) => got.push(ev.detail.config);
+edColor._onChange({
+  stopPropagation() {},
+  detail: { value: { entity: "binary_sensor.porta_cozinha", rotate: 90 } },
+});
+check("cor do bloco de baixo não é perdida pelo ha-form", got[0].color_open === "#33cc55",
+  JSON.stringify(got[0]));
+
+// trocar de dispositivo não pode deixar a entidade do dispositivo velho
+const edDev = new reg["mw-door-window-element-editor"]();
+edDev.hass = hass;
+edDev.setConfig({ entity: "binary_sensor.porta_cozinha", device: "dev1" });
+const moved = [];
+edDev.dispatchEvent = (ev) => moved.push(ev.detail.config);
+edDev._onChange({
+  stopPropagation() {},
+  detail: { value: { device: "dev2", entity: "binary_sensor.porta_cozinha" } },
+});
+check("trocar de dispositivo troca a entidade",
+  moved[0].entity === "binary_sensor.janela_quarto", JSON.stringify(moved[0]));
+
+// ação em objeto (YAML do HA) não pode quebrar o dropdown de string
+const edObj = new reg["mw-door-window-element-editor"]();
+edObj.hass = hass;
+edObj.setConfig({
+  entity: "binary_sensor.porta_cozinha",
+  tap_action: { action: "navigate", navigation_path: "/planta" },
+});
+check("ação em objeto vira string no formulário", edObj._form.data.tap_action === "navigate",
+  JSON.stringify(edObj._form.data.tap_action));
 
 console.log(fails ? `\n${fails} verificação(ões) falharam` : "\ntudo ok");
 process.exit(fails ? 1 : 0);

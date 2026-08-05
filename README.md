@@ -21,6 +21,11 @@ rotate: 90
 > É um **elemento**, não um card: só funciona dentro de
 > `type: picture-elements` (na lista `elements:`).
 
+Tem **editor visual**: no editor do picture-elements, ao abrir o elemento, o
+formulário traz dispositivo → entidade, geometria, aparência, ícones, o que
+esconder por estado, ações e um bloco de cores com transparência. O que ficar
+igual ao padrão **não é gravado no YAML**.
+
 ## Instalação (HACS)
 
 HACS → Dashboard → ⋮ → *Custom repositories* →
@@ -55,6 +60,7 @@ para `cover` e `lock`:
 | Opção | Padrão | O que faz |
 |---|---|---|
 | `entity` | — | **obrigatória** |
+| `device` | `""` | só o editor usa: filtra a lista de entidades |
 | `name` | `""` | tooltip; vazio = `friendly_name` |
 | `invert` | `false` | sensor invertido (`on` = fechada) |
 
@@ -132,11 +138,10 @@ node tools/probe.js   # instancia o elemento sem navegador
 Push na `main` tocando `dist/**` ou `hacs.json` → bump semântico → tag →
 Release → o HACS avisa a atualização.
 
-## Pendente (v0.2.0)
+## Pendente
 
-- Editor visual (`<ha-form>`) — o picture-elements ainda edita elemento
-  custom por YAML; entra junto com o suporte no MW Floorplan Studio.
-- Geração automática dos elementos a partir da planta, no Floorplan Studio.
+- Geração automática dos elementos a partir da planta, no MW Floorplan Studio.
+- Migrar para o fluxo `feature → develop → release → main` da família.
 
 ---
 
